@@ -181,7 +181,7 @@ make install
 
 echo "*** Building freetype2 ***"
 cd $BUILD_DIR/freetype-2*
-./configure --prefix=$TARGET_DIR --disable-shared
+./configure --prefix=$TARGET_DIR --disable-shared --with-png=no
 make
 make install
 
@@ -271,6 +271,7 @@ PKG_CONFIG_PATH="$TARGET_DIR/lib/pkgconfig" ./configure \
   --enable-libvpx \
   --enable-libx264 \
   --enable-libx265 \
+  --enable-avresample \
   --enable-nonfree
 PATH="$BIN_DIR:$PATH" make -j$NPROC
 make install
