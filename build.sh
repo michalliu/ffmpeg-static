@@ -124,9 +124,9 @@ download \
   "http://downloads.xiph.org/releases/vorbis/"
 
 download \
-  "SDL-1.2.15.tar.gz" \
+  "SDL2-2.0.9.tar.gz" \
   "" \
-  "9d96df8417572a2afb781a7c4c811a85" \
+  "f2ecfba915c54f7200f504d8b48a5dfe" \
   "http://www.libsdl.org/release/"
 
 download \
@@ -209,17 +209,9 @@ cd $BUILD_DIR/libvorbis*
 make
 make install
 
-echo "*** Building SDL ***"
-cd $BUILD_DIR/SDL-1*
-case "$OSTYPE" in
-  #solaris*) echo "SOLARIS" ;;
-  darwin*)   patch -p1 <../../patches/sdl/sdl-1.2.15-macosx-compile.patch;; 
-  #linux*)   echo "LINUX" ;;
-  #bsd*)     echo "BSD" ;;
-  #msys*)    echo "WINDOWS" ;;
-  #*)        echo "unknown: $OSTYPE" ;;
-esac
-./configure --prefix=$TARGET_DIR --disable-shared
+echo "*** Building SDL2 ***"
+cd $BUILD_DIR/SDL2-*
+./configure --prefix=$TARGET_DIR --without-x --disable-shared
 make
 make install
 
