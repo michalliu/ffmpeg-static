@@ -240,7 +240,7 @@ if which nproc;then
 	NPROC="`nproc`"
 elif [ -f /proc/cpuinfo ];then
 	NPROC="`grep -c ^processor /proc/cpuinfo`"
-elif which sysctl;then
+elif [ -n `which sysctl` ];then
 	NPROC="`sysctl -n hw.ncpu`"
 fi
 
@@ -256,7 +256,7 @@ case "$OSTYPE" in
 esac
 
 # FFMpeg
-echo "*** Building FFmpeg ***"
+echo "*** Building FFmpeg with j${NPROC} ***"
 cd $BUILD_DIR/ffmpeg*
 PATH="$BIN_DIR:$PATH" \
 LDFLAGS="${LDFLAGS} -lstdc++" \
