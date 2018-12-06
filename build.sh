@@ -252,6 +252,7 @@ echo "*** Building FFmpeg with j${NPROC} ***"
 cd $BUILD_DIR/ffmpeg*
 PATH="$BIN_DIR:$PATH" \
 LDFLAGS="${LDFLAGS} -lstdc++" \
+#--enable-debug=2 --disable-optimizations --disable-stripping --disable-asm \
 PKG_CONFIG_PATH="$TARGET_DIR/lib/pkgconfig" ./configure \
   --prefix="$TARGET_DIR" \
   --pkg-config-flags="--static" \
