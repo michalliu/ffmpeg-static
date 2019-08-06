@@ -109,9 +109,9 @@ download \
   "http://download.videolan.org/pub/videolan/x264/snapshots/"
 
 download \
-  "x265_2.7.tar.gz" \
+  "x265_3.1.2.tar.gz" \
   "" \
-  "b0d7d20da2a418fa4f53a559946ea079" \
+  "a528ab27660d6bcfc46188ae602b3c2e" \
   "https://bitbucket.org/multicoreware/x265/downloads/"
 
 download \
@@ -156,6 +156,18 @@ download \
   "vpx-1.6.1.tar.gz" \
   "b0925c8266e2859311860db5d76d1671" \
   "https://github.com/webmproject/libvpx/archive"
+
+download \
+  "freetype-2.8.1.tar.gz" \
+  "" \
+  "nil" \
+  "http://download.savannah.gnu.org/releases/freetype/"
+
+download \
+  "fontconfig-2.11.1.tar.bz2" \
+  "" \
+  "nil" \
+  "https://www.freedesktop.org/software/fontconfig/release/"
 
 download \
   "rtmpdump-2.3.tgz" \
@@ -212,10 +224,22 @@ download \
   "https://github.com/xiph/speex/archive/"
 
 download \
-  "n4.0.tar.gz" \
-  "ffmpeg4.0.tar.gz" \
-  "4749a5e56f31e7ccebd3f9924972220f" \
-  "https://github.com/FFmpeg/FFmpeg/archive"
+  "SDL2-2.0.9.tar.gz" \
+  "" \
+  "f2ecfba915c54f7200f504d8b48a5dfe" \
+  "http://www.libsdl.org/release/"
+
+download \
+  "libtheora-1.1.1.tar.bz2" \
+  "" \
+  "292ab65cedd5021d6b7ddd117e07cd8e" 
+  "http://downloads.xiph.org/releases/theora/"
+
+download \
+  "ffmpeg-3.4.2.tar.bz2" \
+  "" \
+  "nil" \
+  "http://ffmpeg.org/releases/"
 
 [ $download_only -eq 1 ] && exit 0
 
@@ -288,10 +312,10 @@ make install
 echo "*** Building harfbuzz ***"
 cd $BUILD_DIR/harfbuzz-*
 [ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
-./configure --prefix=$TARGET_DIR --disable-shared --enable-static
+./configure --prefix=$TARGET_DIR --disable-shared --enable-static CFLAGS="-fPIC" CXXFLAGS="-fPIC"
 make -j $jval
 make install
-
+#
 echo "*** Building fribidi ***"
 cd $BUILD_DIR/fribidi-*
 [ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
@@ -322,6 +346,21 @@ cd $BUILD_DIR/opus*
 [ ! -f config.status ] && ./configure --prefix=$TARGET_DIR --disable-shared
 make
 make install
+
+echo "*** Building freetype2 ***"
+cd $BUILD_DIR/freetype-2*
+[ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
+[ ! -f config.status ] && ./configure --prefix=$TARGET_DIR --disable-shared --with-png=no CFLAGS="-fPIC"
+make
+make install
+
+echo "*** Building fontconfig ***"
+cd $BUILD_DIR/fontconfig*
+[ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
+[ ! -f config.status ] && PKG_CONFIG_PATH="$TARGET_DIR/lib/pkgconfig" ./configure --prefix=$TARGET_DIR --disable-docs --enable-static
+make
+make install
+
 
 echo "*** Building libvpx ***"
 cd $BUILD_DIR/libvpx*
@@ -395,6 +434,24 @@ cd $BUILD_DIR/vorbis*
 make -j $jval
 make install
 
+echo "*** Building SDL2 ***"
+cd $BUILD_DIR/SDL2-*
+[ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
+if [ "$platform" = "linux" ]; then
+  ./configure --prefix=$TARGET_DIR --disable-shared
+elif [ "$platform" = "darwin" ]; then
+  ./configure --prefix=$TARGET_DIR --without-x --disable-shared
+fi
+make
+make install
+
+echo "*** Building libtheora ***"
+cd $BUILD_DIR/libtheora*
+[ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
+./configure --prefix=$TARGET_DIR --disable-shared
+make
+make install
+
 echo "*** Building libogg ***"
 cd $BUILD_DIR/ogg*
 [ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
@@ -411,20 +468,42 @@ cd $BUILD_DIR/speex*
 make -j $jval
 make install
 
+
 # FFMpeg
+DEBUG=true
+FFMPEG_EXTRA_LDFLAG=""
+FFMPEG_EXTRA_CFLAG=""
+
+case "$OSTYPE" in
+  #solaris*) echo "SOLARIS" ;;
+  darwin*)  FFMPEG_EXTRA_LDFLAG="-framework CoreText" ;; 
+  #linux*)   echo "LINUX" ;;
+  #bsd*)     echo "BSD" ;;
+  #msys*)    echo "WINDOWS" ;;
+  #*)        echo "unknown: $OSTYPE" ;;
+esac
+
 echo "*** Building FFmpeg ***"
-cd $BUILD_DIR/FFmpeg*
+cd $BUILD_DIR/ffmpeg*
 [ $rebuild -eq 1 -a -f Makefile ] && make distclean || true
+
+
+if $DEBUG; then
+FFMPEG_EXTRA_LDFLAG="$FFMPEG_EXTRA_LDFLAG -g"
+FFMPEG_EXTRA_CFLAG="$FFMPEG_EXTRA_CFLAG -g"
+FFMPEG_DEBUG_CONFIG_OPTION="--enable-debug=2 --disable-optimizations --disable-stripping --disable-asm"
+fi
 
 if [ "$platform" = "linux" ]; then
   [ ! -f config.status ] && PATH="$BIN_DIR:$PATH" \
+  LDFLAGS="${LDFLAGS} -lstdc++" \
   PKG_CONFIG_PATH="$TARGET_DIR/lib/pkgconfig" ./configure \
     --prefix="$TARGET_DIR" \
     --pkg-config-flags="--static" \
+	$FFMPEG_DEBUG_CONFIG_OPTION \
     --extra-cflags="-I$TARGET_DIR/include" \
-    --extra-ldflags="-L$TARGET_DIR/lib" \
+    --extra-ldflags="-L$TARGET_DIR/lib $FFMPEG_EXTRA_LDFLAG" \
     --extra-libs="-lpthread -lm -lz" \
-    --extra-ldexeflags="-static" \
     --bindir="$BIN_DIR" \
     --enable-pic \
     --enable-ffplay \
@@ -452,18 +531,20 @@ if [ "$platform" = "linux" ]; then
     --enable-libwebp \
     --enable-libx264 \
     --enable-libx265 \
+	--enable-avresample \
     --enable-libxvid \
     --enable-libzimg \
     --enable-nonfree \
     --enable-openssl
 elif [ "$platform" = "darwin" ]; then
   [ ! -f config.status ] && PATH="$BIN_DIR:$PATH" \
+  LDFLAGS="${LDFLAGS} -lstdc++" \
   PKG_CONFIG_PATH="${TARGET_DIR}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:/usr/local/Cellar/openssl/1.0.2o_1/lib/pkgconfig" ./configure \
     --cc=/usr/bin/clang \
     --prefix="$TARGET_DIR" \
     --pkg-config-flags="--static" \
     --extra-cflags="-I$TARGET_DIR/include" \
-    --extra-ldflags="-L$TARGET_DIR/lib" \
+    --extra-ldflags="-L$TARGET_DIR/lib $FFMPEG_EXTRA_LDFLAG" \
     --extra-ldexeflags="-Bstatic" \
     --bindir="$BIN_DIR" \
     --enable-pic \
@@ -490,6 +571,7 @@ elif [ "$platform" = "darwin" ]; then
     --enable-libwebp \
     --enable-libx264 \
     --enable-libx265 \
+	--enable-avresample \
     --enable-libxvid \
     --enable-libzimg \
     --enable-nonfree \
